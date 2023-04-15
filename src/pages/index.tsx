@@ -1,16 +1,41 @@
 import Image from "next/image";
 import { Inter } from "next/font/google";
+import { InferGetServerSidePropsType, type GetServerSideProps } from "next";
 import { useState } from "react";
 import { useAsync } from "react-use";
 import axios from "axios";
 
+type Data = {
+  time: Date;
+};
+
 const inter = Inter({ subsets: ["latin"] });
 
-export default function Home() {
-  const [time, setTime] = useState<Date | null>(null);
+const isDevelopment = process.env.NODE_ENV === "development";
+
+export const getServerSideProps: GetServerSideProps<{
+  data: Data;
+}> = async () => {
+  const baseURL = isDevelopment
+    ? "http://localhost:3000"
+    : "https://ambitious-dune-0edcf5503.3.azurestaticapps.net";
+
+  const { data } = await axios<Data>(`${baseURL}/api/time`);
+
+  return {
+    props: {
+      data,
+    },
+  };
+};
+
+export default function Home({
+  data,
+}: InferGetServerSidePropsType<typeof getServerSideProps>) {
+  const [time, setTime] = useState<Date | null>(() => new Date(data.time));
   useAsync(async () => {
-    const { data } = await axios.get<{ time: Date }>("/api/time");
-    setTime(new Date(data.time));
+    const { data } = await axios.get<Data>("/api/time");
+    setTime(new Date(new Date(data.time)));
   }, []);
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
